@@ -51,3 +51,4 @@ docs/_build/
 
 .env
 src/Lib
+src/Scripts
