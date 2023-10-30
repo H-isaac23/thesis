@@ -30,8 +30,8 @@ class Widget(QWidget):
         main_widget.setLayout(content_layout)
 
         layout = QHBoxLayout()
+        layout.addWidget(main_widget, 3)
         layout.addWidget(menu_widget, 1)
-        layout.addWidget(main_widget, 4)
         self.setLayout(layout)
 
 if __name__ == "__main__":

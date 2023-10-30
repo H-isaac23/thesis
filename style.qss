@@ -14,10 +14,22 @@ QListWidget::item:selected {
 QLabel {
     background-color: #FFFFFF;
     qproperty-alignment: AlignCenter;
+    color: #FFFFFF;
 }
 
 QPushButton {
     background-color: #2ABf9E;
     padding: 20px;
     font-size: 18px;
+    color: #FFFFFF;
+    border-radius: 5px;
+    border: 1px solid white;
+}
+
+QPushButton:hover {
+    background-color: #FFFFFF;
+}
+
+QWidget {
+    background-color: #33373B;
 }
