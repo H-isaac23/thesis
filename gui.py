@@ -3,7 +3,7 @@ import random
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QApplication, QLabel, QPushButton, QVBoxLayout, \
-    QHBoxLayout
+    QHBoxLayout, QFileDialog
 
 class Widget(QWidget):
     def __init__(self, parent=None):
@@ -69,6 +69,7 @@ class Widget(QWidget):
 
         browse_button = QPushButton("Browse")
         browse_button.setObjectName("browse-button")
+        browse_button.clicked.connect(self.getFile)
 
         content_layout = QVBoxLayout()
         content_layout.addWidget(browse_button)
@@ -81,6 +82,10 @@ class Widget(QWidget):
         layout.addWidget(sidebar_widget, 1)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
+
+    def getFile(self):
+        filenames = QFileDialog.getOpenFileNames(self, "Select one or more files to open", "C:\\", "*.pdf")
+        print(filenames[0])
 
 if __name__ == "__main__":
     app = QApplication()
