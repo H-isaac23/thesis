@@ -1,6 +1,7 @@
 QListWidget {
     color: #FFFFFF;
     background-color: #33373B;
+    border: none;
 }
 
 QListWidget::item {
@@ -15,21 +16,54 @@ QLabel {
     background-color: #FFFFFF;
     qproperty-alignment: AlignCenter;
     color: #FFFFFF;
+    padding: 1em;
 }
 
 QPushButton {
     background-color: #2ABf9E;
-    padding: 20px;
-    font-size: 18px;
+    padding: 16px;
+    font-size: 14px;
     color: #FFFFFF;
     border-radius: 5px;
-    border: 1px solid white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 QPushButton:hover {
-    background-color: #FFFFFF;
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
 QWidget {
     background-color: #33373B;
+}
+
+QVBoxLayout {
+    margin: 0;
+}
+
+QWidget#sidebar-widget {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+QListWidget#pdf-widget {
+    margin-bottom: 1em;
+}
+
+QPushButton#clear-button {
+    background-color: #444444;
+    border: none;
+}
+
+QPushButton#clear-button:hover {
+    background-color: #666666;
+}
+
+QPushButton#browse-button {
+    margin: 0 22em;
+    padding: 0.75em;
+    background-color: #1A73E8;
+    border: none;
+}
+
+QPushButton#browse-button:hover {
+    background-color: rgba(26, 115, 232, 0.7);
 }
