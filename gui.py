@@ -20,18 +20,16 @@ class Widget(QWidget):
 
         ### Header
         header_widget = QWidget()
+        header_widget.setObjectName("header-widget")
+
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_widget.setContentsMargins(0, 0, 0, 0)
 
-        file_label = QLabel("FILE NAME")
-        status_label = QLabel("STATUS")
+        file_label = QLabel("FILES")
         file_label.setContentsMargins(0, 0, 0, 0)
-        status_label.setContentsMargins(0, 0, 0, 0)
 
         header_layout.addWidget(file_label)
-        header_layout.addWidget(status_label)
-
         header_widget.setLayout(header_layout)
 
         ### PDF list widget
@@ -97,14 +95,22 @@ class Widget(QWidget):
         self.setLayout(layout)
 
     def getFiles(self):
-        filenames = QFileDialog.getOpenFileNames(self, "Select one or more files to open", "C:\\", "*.pdf")[0]
-        if len(filenames) == 0:
+        file_paths = QFileDialog.getOpenFileNames(self, "Select one or more files to open", "C:\\", "*.pdf")[0]
+        if len(file_paths) == 0:
             return
-        self.filenames += filenames
+        self.filenames += file_paths
         self.pdf_widget.takeItem(0)
-        for file in self.filenames:
+        for file_path in self.filenames:
             pdf_icon = QIcon("./pdf-icon.png")
-            file_item = QListWidgetItem(pdf_icon, file.split("/")[-1][:15] + "...")
+            filename = file_path.split("/")[-1]
+
+            # trim file name
+            filename_length = 36
+            if len(filename) > filename_length:
+                filename = filename[:filename_length] + "..."
+
+            file_item = QListWidgetItem(filename)
+            file_item.setIcon(pdf_icon)
             self.pdf_widget.addItem(file_item)
 
     def startSummarization(self):
@@ -114,6 +120,9 @@ class Widget(QWidget):
         pass
 
     def showSummarizedFiles(self):
+        pass
+
+    def deleteSelectedFiles(self):
         pass
 
 
