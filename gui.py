@@ -4,6 +4,7 @@ from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QApplication, QLabel, QPushButton, QVBoxLayout, \
     QHBoxLayout, QFileDialog
+from PySide6.QtGui import QIcon
 
 class Widget(QWidget):
     def __init__(self, parent=None):
@@ -14,6 +15,8 @@ class Widget(QWidget):
         self.setFixedHeight(self.height)
         self.setFixedWidth(self.width)
         self.setContentsMargins(0, 0, 0, 0)
+
+        self.filenames = []
 
         ### Header
         header_widget = QWidget()
@@ -33,12 +36,21 @@ class Widget(QWidget):
 
         ### PDF list widget
 
-        pdf_widget = QListWidget()
-        pdf_widget.setObjectName("pdf-widget")
-        for i in range(20):
-            item = QListWidgetItem(f"Item {i}")
-            item.setTextAlignment(Qt.AlignCenter)
-            pdf_widget.addItem(item)
+        self.pdf_widget = QListWidget()
+        self.pdf_widget.setObjectName("pdf-widget")
+        if len(self.filenames) == 0:
+            note = QListWidgetItem("There are currently no files.")
+            note.setTextAlignment(Qt.AlignCenter)
+            self.pdf_widget.addItem(note)
+        # TODO: will remove this after testing
+        else:
+            note = QListWidgetItem("There are currently files.")
+            note.setTextAlignment(Qt.AlignCenter)
+            self.pdf_widget.addItem(note)
+        # for i in range(5):
+        #     item = QListWidgetItem(f"Item {i}")
+        #     item.setTextAlignment(Qt.AlignCenter)
+        #     self.pdf_widget.addItem(item)
 
         #### Button container
         button_container = QWidget()
@@ -47,6 +59,7 @@ class Widget(QWidget):
         start_button = QPushButton("START")
         clear_button = QPushButton("CLEAR")
         start_button.setObjectName("start-button")
+        start_button.clicked.connect(self.startSummarization)
         clear_button.setObjectName("clear-button")
 
         button_layout.addWidget(start_button)
@@ -58,7 +71,7 @@ class Widget(QWidget):
 
         sidebar_layout = QVBoxLayout()
         sidebar_layout.addWidget(header_widget, 1)
-        sidebar_layout.addWidget(pdf_widget, 10)
+        sidebar_layout.addWidget(self.pdf_widget, 10)
         sidebar_layout.addWidget(button_container, 2)
 
         sidebar_widget = QWidget()
@@ -69,7 +82,7 @@ class Widget(QWidget):
 
         browse_button = QPushButton("Browse")
         browse_button.setObjectName("browse-button")
-        browse_button.clicked.connect(self.getFile)
+        browse_button.clicked.connect(self.getFiles)
 
         content_layout = QVBoxLayout()
         content_layout.addWidget(browse_button)
@@ -83,9 +96,26 @@ class Widget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
-    def getFile(self):
-        filenames = QFileDialog.getOpenFileNames(self, "Select one or more files to open", "C:\\", "*.pdf")
-        print(filenames[0])
+    def getFiles(self):
+        filenames = QFileDialog.getOpenFileNames(self, "Select one or more files to open", "C:\\", "*.pdf")[0]
+        if len(filenames) == 0:
+            return
+        self.filenames += filenames
+        self.pdf_widget.takeItem(0)
+        for file in self.filenames:
+            pdf_icon = QIcon("./pdf-icon.png")
+            file_item = QListWidgetItem(pdf_icon, file.split("/")[-1][:15] + "...")
+            self.pdf_widget.addItem(file_item)
+
+    def startSummarization(self):
+        pass
+
+    def clearFiles(self):
+        pass
+
+    def showSummarizedFiles(self):
+        pass
+
 
 if __name__ == "__main__":
     app = QApplication()
