@@ -3,7 +3,7 @@ import random
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QApplication, QLabel, QPushButton, QVBoxLayout, \
-    QHBoxLayout, QFileDialog
+    QHBoxLayout, QFileDialog, QAbstractItemView
 from PySide6.QtGui import QIcon
 
 class Widget(QWidget):
@@ -54,14 +54,15 @@ class Widget(QWidget):
         button_container = QWidget()
 
         button_layout = QVBoxLayout()
-        start_button = QPushButton("START")
-        clear_button = QPushButton("CLEAR")
-        start_button.setObjectName("start-button")
-        start_button.clicked.connect(self.startSummarization)
-        clear_button.setObjectName("clear-button")
+        self.start_button = QPushButton("START")
+        self.clear_button = QPushButton("REMOVE FILES")
+        self.start_button.setObjectName("start-button")
+        self.start_button.clicked.connect(self.startSummarization)
+        self.clear_button.setObjectName("clear-button")
+        self.clear_button.clicked.connect(self.selectFilesToRemove)
 
-        button_layout.addWidget(start_button)
-        button_layout.addWidget(clear_button)
+        button_layout.addWidget(self.start_button)
+        button_layout.addWidget(self.clear_button)
         button_layout.setContentsMargins(0, 0, 0, 0)
         button_container.setLayout(button_layout)
 
@@ -122,7 +123,26 @@ class Widget(QWidget):
     def showSummarizedFiles(self):
         pass
 
-    def deleteSelectedFiles(self):
+    def removeSelectedFiles(self):
+        # TODO: change bg color of start button, change text of start button
+        self.start_button.setText("START")
+
+        # TODO: reconnect selectFilesToRemove to clear button, revert selection mode
+        self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.clear_button.clicked.connect(self.selectFilesToRemove)
+        pass
+
+    def selectFilesToRemove(self):
+        # Allow multiple items to be selected
+        self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+
+        # TODO: change start button background color and text
+        self.start_button.setText("REMOVE")
+
+        # TODO: change text of clear button
+        # TODO: change clicked slot
+        self.clear_button.clicked.connect(self.removeSelectedFiles)
+
         pass
 
 
