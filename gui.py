@@ -125,12 +125,14 @@ class Widget(QWidget):
 
     def removeSelectedFiles(self):
         # TODO: change bg color of start button, change text of start button
-        self.start_button.setText("START")
+        # self.start_button.setText("START")
 
         # TODO: reconnect selectFilesToRemove to clear button, revert selection mode
-        self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.clear_button.clicked.connect(self.selectFilesToRemove)
-        pass
+        # self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        # self.clear_button.clicked.connect(self.selectFilesToRemove)
+        items = self.pdf_widget.selectedItems()
+        for item in items:
+            self.pdf_widget.takeItem(self.pdf_widget.row(item))
 
     def selectFilesToRemove(self):
         # Allow multiple items to be selected
@@ -138,12 +140,21 @@ class Widget(QWidget):
 
         # TODO: change start button background color and text
         self.start_button.setText("REMOVE")
+        self.clear_button.setText("CANCEL")
 
         # TODO: change text of clear button
         # TODO: change clicked slot
-        self.clear_button.clicked.connect(self.removeSelectedFiles)
+        self.start_button.clicked.connect(self.removeSelectedFiles)
+        self.clear_button.clicked.connect(self.revertButtons)
 
-        pass
+
+    def revertButtons(self):
+        self.start_button.setText("START")
+        self.clear_button.setText("REMOVE FILES")
+
+        self.start_button.clicked.connect(self.startSummarization)
+        self.clear_button.clicked.connect(self.selectFilesToRemove)
+        self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
 
 if __name__ == "__main__":
