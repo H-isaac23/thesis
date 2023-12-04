@@ -100,3 +100,16 @@ QWidget#header-widget {
     margin: 0 0.5em;
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
+
+QListWidget#summ-widget {
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+QPushButton#save-to-button {
+    background-color: #1A73E8;
+    border: none;
+}
+
+QLabel#location-label {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
