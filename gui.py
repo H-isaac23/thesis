@@ -154,6 +154,9 @@ class Widget(QWidget):
 
     def change_save_location(self):
         directory = QFileDialog.getExistingDirectory(self, "Select Directory")
+        if directory == "":
+            return
+
         self.save_location = directory
         if len(directory) > 30:
             directory = directory[:27] + "..."
@@ -167,6 +170,10 @@ class Widget(QWidget):
             filename_display = file + ".md"
             if len(filename_display) > trim_filename_length:
                 filename_display = file[:trim_filename_length] + "..."
+
+            ### Write to save_location
+            with open(os.path.join(self.save_location, file+".md"), "w") as f_summary:
+                f_summary.write("#Test")
 
             summary_file_item = QListWidgetItem(filename_display)
             summary_file_item.setIcon(markdown_icon)
@@ -183,13 +190,10 @@ class Widget(QWidget):
 
     def remove_selected_files(self):
         # TODO: change bg color of start button, change text of start button
-        # self.start_button.setText("START")
 
-        # TODO: reconnect select_files_to_remove to clear button, revert selection mode
-        # self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        # self.clear_button.clicked.connect(self.select_files_to_remove)
         items = self.pdf_widget.selectedItems()
         for item in items:
+            print(item)
             self.pdf_widget.takeItem(self.pdf_widget.row(item))
 
     def select_files_to_remove(self):
@@ -203,6 +207,8 @@ class Widget(QWidget):
         # TODO: change text of clear button
         # TODO: change clicked slot
         self.start_button.clicked.connect(self.remove_selected_files)
+        self.start_button.clicked.disconnect(self.start_summarization_proc)
+        self.clear_button.clicked.disconnect(self.select_files_to_remove)
         self.clear_button.clicked.connect(self.revert_buttons)
 
 
