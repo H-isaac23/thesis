@@ -2,10 +2,12 @@ import sys
 import os
 import random
 from PySide6 import QtCore, QtWidgets, QtGui
+from time import sleep
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QApplication, QLabel, QPushButton, QVBoxLayout, \
-    QHBoxLayout, QFileDialog, QAbstractItemView, QListView
+    QHBoxLayout, QFileDialog, QAbstractItemView, QListView, QStackedWidget
 from PySide6.QtGui import QIcon
+
 
 class Widget(QWidget):
     def __init__(self, parent=None):
@@ -19,6 +21,30 @@ class Widget(QWidget):
 
         self.filenames = []
         self.save_location = os.path.join(os.path.expanduser("~"), "Desktop")
+
+        ### Stack pages setup
+        self.stacked_widget = QStackedWidget()
+        self.page_layout = QHBoxLayout()
+        self.page_layout.setContentsMargins(0, 0, 0, 0)
+
+        ### Pages to be displayed
+        self.first_page_widget = self.create_first_page()
+        self.summarized_page = self.create_second_page("EWWWWWWWWWWWWWW. WHAT THE FUCK")
+
+        ### Add pages to stacked widgets
+        self.stacked_widget.addWidget(self.first_page_widget)
+        self.stacked_widget.addWidget(self.summarized_page)
+
+        self.page_layout.addWidget(self.stacked_widget)
+
+        self.setLayout(self.page_layout)
+
+        self.navigate_to_page(1)
+
+        # self.setLayout(layout)
+        # print(self.summarized_widget.frameSize())
+
+    def create_first_page(self):
         print(self.save_location)
 
         ### Header
@@ -121,16 +147,27 @@ class Widget(QWidget):
         content_layout.addWidget(self.summarized_widget)
         content_layout.setContentsMargins(0, 0, 0, 0)
 
-        main_widget = QWidget()
-        main_widget.setLayout(content_layout)
+        left_widget = QWidget()
+        left_widget.setLayout(content_layout)
 
         layout = QHBoxLayout()
-        layout.addWidget(main_widget, 3)
+        layout.addWidget(left_widget, 3)
         layout.addWidget(sidebar_widget, 1)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.setLayout(layout)
-        print(self.summarized_widget.frameSize())
+        main_widget = QWidget()
+        main_widget.setLayout(layout)
+
+        return main_widget
+
+    def create_second_page(self, filename):
+        # Create and return the second page widget
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        # Add your components for the second page
+        layout.addWidget(QLabel(f"This is the second page. {filename}"))
+        layout.addWidget(QLabel(f"This is the nyao page. {filename}"))
+        return widget
 
     def get_files(self):
         file_paths = QFileDialog.getOpenFileNames(self, "Select one or more files to open", "C:\\", "*.pdf")[0]
@@ -219,6 +256,11 @@ class Widget(QWidget):
         self.start_button.clicked.connect(self.start_summarization_proc)
         self.clear_button.clicked.connect(self.select_files_to_remove)
         self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+    def navigate_to_page(self, page_index):
+        # Method to switch views
+        # sleep(4)
+        self.stacked_widget.setCurrentIndex(page_index)
 
 
 if __name__ == "__main__":
