@@ -20,6 +20,7 @@ class Widget(QWidget):
         self.setContentsMargins(0, 0, 0, 0)
 
         self.filenames = []
+        self.summarized_files = []
         self.save_location = os.path.join(os.path.expanduser("~"), "Desktop")
 
         ### Stack pages setup
@@ -29,17 +30,17 @@ class Widget(QWidget):
 
         ### Pages to be displayed
         self.first_page_widget = self.create_first_page()
-        self.summarized_page = self.create_second_page("EWWWWWWWWWWWWWW. WHAT THE FUCK")
+        # self.summarized_page = self.create_second_page("EWWWWWWWWWWWWWW. WHAT THE FUCK")
 
         ### Add pages to stacked widgets
         self.stacked_widget.addWidget(self.first_page_widget)
-        self.stacked_widget.addWidget(self.summarized_page)
+        # self.stacked_widget.addWidget(self.summarized_page)
 
         self.page_layout.addWidget(self.stacked_widget)
 
         self.setLayout(self.page_layout)
 
-        self.navigate_to_page(1)
+        # self.navigate_to_page(1)
 
         # self.setLayout(layout)
         # print(self.summarized_widget.frameSize())
@@ -63,6 +64,7 @@ class Widget(QWidget):
 
         ### Summarized Files Widget
         self.summarized_widget = QListWidget()
+        self.summarized_widget.itemDoubleClicked.connect(self.create_second_page)
         self.summarized_widget.setFlow(QListView.Flow.LeftToRight)
         self.summarized_widget.setContentsMargins(0, 0, 0, 0)
         self.summarized_widget.setFixedHeight(100)
@@ -160,17 +162,75 @@ class Widget(QWidget):
 
         return main_widget
 
-    def create_second_page(self, filename):
+    def create_second_page(self, item):
         # Create and return the second page widget
         widget = QWidget()
-        layout = QHBoxLayout(widget)
-        # Add your components for the second page
-        layout.addWidget(QLabel(f"This is the second page. {filename}"))
-        layout.addWidget(QLabel(f"This is the nyao page. {filename}"))
-        return widget
+        layout = QVBoxLayout(widget)
+
+        # Create a horizontal layout for the back button
+        button_layout = QHBoxLayout()
+        back_button = QPushButton("Back")
+        back_button.clicked.connect(self.remove_widget_and_back_to_home)
+        button_layout.addWidget(back_button)  # Add the button to the horizontal layout
+        button_layout.addStretch(1)  # Push the button to the left
+
+        # Add the horizontal layout to the vertical layout
+        layout.addLayout(button_layout)
+
+        # Add components for the second page
+        filename_page_two = ""
+        current_text = item.text()
+        if "..." in current_text:
+            current_text = current_text[:-3]
+
+        ### find file location
+        for file_dir in self.summarized_files:
+            if current_text in file_dir:
+                with open(file_dir, "r") as fi:
+                    print(fi.read())
+                filename_page_two = os.path.basename(file_dir)
+                break
+        print(filename_page_two)
+
+        layout.addWidget(QLabel(f"This is the second page. {filename_page_two}"))
+        layout.addWidget(QLabel(f"This is the nyao page. {file_dir}"))
+
+        self.stacked_widget.addWidget(widget)
+        self.navigate_to_page(1)
+        # return widget
+
+    def open_summarized_content(self):
+        pass
+
+    def test_shit(self, item):
+        filename_page_two = ""
+        current_text = item.text()
+        if "..." in current_text:
+            current_text = current_text[:-3]
+
+        ### find file location
+        for file_dir in self.summarized_files:
+            if current_text in file_dir:
+                with open(file_dir, "r") as fi:
+                    print(fi.read())
+                filename_page_two = os.path.basename(file_dir)
+                break
+        print(filename_page_two)
+
+    def remove_widget_and_back_to_home(self, index):
+        # navigate to the first page first
+        self.navigate_to_page(0)
+
+        # Get the widget at the given index
+        widget_to_remove = self.stacked_widget.widget(1)
+
+        # Remove and delete the widget
+        if widget_to_remove is not None:
+            self.stacked_widget.removeWidget(widget_to_remove)
+            widget_to_remove.deleteLater()
 
     def get_files(self):
-        file_paths = QFileDialog.getOpenFileNames(self, "Select one or more files to open", "C:\\", "*.pdf")[0]
+        file_paths = QFileDialog.getOpenFileNames(self, "Select one or more files to open", os.path.join(os.path.expanduser("~"), "Downloads"), "*.pdf")[0]
         if len(file_paths) == 0:
             return
         self.filenames += file_paths
@@ -205,6 +265,7 @@ class Widget(QWidget):
         for file in raw_filenames:
             trim_filename_length = 20
             filename_display = file + ".md"
+            self.summarized_files.append(os.path.join(self.save_location, file+".md"))
             if len(filename_display) > trim_filename_length:
                 filename_display = file[:trim_filename_length] + "..."
 
@@ -247,7 +308,6 @@ class Widget(QWidget):
         self.start_button.clicked.disconnect(self.start_summarization_proc)
         self.clear_button.clicked.disconnect(self.select_files_to_remove)
         self.clear_button.clicked.connect(self.revert_buttons)
-
 
     def revert_buttons(self):
         self.start_button.setText("START")
