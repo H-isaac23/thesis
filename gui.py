@@ -3,9 +3,10 @@ import os
 import random
 from PySide6 import QtCore, QtWidgets, QtGui
 from time import sleep
+import markdown
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QApplication, QLabel, QPushButton, QVBoxLayout, \
-    QHBoxLayout, QFileDialog, QAbstractItemView, QListView, QStackedWidget
+    QHBoxLayout, QFileDialog, QAbstractItemView, QListView, QStackedWidget, QTextBrowser
 from PySide6.QtGui import QIcon
 
 
@@ -179,6 +180,7 @@ class Widget(QWidget):
 
         # Add components for the second page
         filename_page_two = ""
+        file_dir_access = ""
         current_text = item.text()
         if "..." in current_text:
             current_text = current_text[:-3]
@@ -186,14 +188,15 @@ class Widget(QWidget):
         ### find file location
         for file_dir in self.summarized_files:
             if current_text in file_dir:
-                with open(file_dir, "r") as fi:
-                    print(fi.read())
+                file_dir_access = file_dir
                 filename_page_two = os.path.basename(file_dir)
                 break
         print(filename_page_two)
-
-        layout.addWidget(QLabel(f"This is the second page. {filename_page_two}"))
-        layout.addWidget(QLabel(f"This is the nyao page. {file_dir}"))
+        with open(file_dir_access, "r") as fi:
+            # print(fi.read())
+            layout.addWidget(MarkdownViewer(fi.read()))
+        # layout.addWidget(QLabel(f"This is the second page. {filename_page_two}"))
+        # layout.addWidget(QLabel(f"This is the nyao page. {file_dir}"))
 
         self.stacked_widget.addWidget(widget)
         self.navigate_to_page(1)
@@ -271,7 +274,23 @@ class Widget(QWidget):
 
             ### Write to save_location
             with open(os.path.join(self.save_location, file+".md"), "w") as f_summary:
-                f_summary.write("#Test")
+                some_text = """## Introduction:
+
+The study aimed to develop a system for translating Baybáyin script to Tagalog using a LeNet **Convolutional Neural Network** (CNN) with real-time recognition on OpenCV. The resurgence of interest in Baybáyin, due to social media and cultural reconnection, and the Philippine Congress's approval of House Bill 1022, which declares Baybáyin as the national writing system, motivated this research.
+
+## Process:
+
+The researchers used a LeNet CNN architecture due to its simplicity and effectiveness for beginners in CNN. The system was designed to detect Baybáyin scripts using a webcam, classify the script into Tagalog translation, and automate the conversion of hand-drawn Baybáyin characters. The dataset consisted of **36,000** images of Baybáyin characters, which were trained, validated, and tested using the model. The system was developed using Python and various libraries such as **OpenCV, NumPy, Sklearn, Keras, Matplotlib, and TensorFlow**.
+
+## Results:
+
+The system achieved a total accuracy of **93.91%**, with a test score of **5.17%** and a test accuracy of **98.50%** over 20 epochs used in the testing phase.
+
+## Conclusion:
+
+The study concluded that using CNN to automate the conversion of hand-drawn Baybáyin characters is **feasible and successful**. The objectives of developing an intelligent system for script identification and classification, utilizing LeNet CNN for recognition, and capturing scripts via webcam were achieved. However, the system's performance was *limited* by the hardware specifications of the laptop and webcam used. Future recommendations include implementing the system on a mobile platform for better accessibility and comprehensiveness.
+                """
+                f_summary.write(some_text)
 
             summary_file_item = QListWidgetItem(filename_display)
             summary_file_item.setIcon(markdown_icon)
@@ -321,6 +340,22 @@ class Widget(QWidget):
         # Method to switch views
         # sleep(4)
         self.stacked_widget.setCurrentIndex(page_index)
+
+
+class MarkdownViewer(QTextBrowser):
+    def __init__(self, text):
+        super().__init__()
+        # self.setStyleSheet("color: white; font-size: 2em;")
+        self.setMarkdown(f"{text}")
+
+    def setMarkdown(self, markdown_text):
+        html_content = markdown.markdown(markdown_text)
+        # Create a style block that sets the text color and font size
+        style_block = "<style>* { color: white !important; font-size: 2em !important; }</style>"
+        # Combine the style block with the HTML content
+        styled_html = style_block + html_content
+        # Set the combined HTML as the content of the QTextBrowser
+        self.setHtml(styled_html)
 
 
 if __name__ == "__main__":
