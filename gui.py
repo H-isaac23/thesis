@@ -75,15 +75,16 @@ class Widget(QWidget):
 
         self.pdf_widget = QListWidget()
         self.pdf_widget.setObjectName("pdf-widget")
-        if len(self.filenames) == 0:
-            note = QListWidgetItem("There are currently no files.")
-            note.setTextAlignment(Qt.AlignCenter)
-            self.pdf_widget.addItem(note)
+        self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        # if len(self.filenames) == 0:
+        #     note = QListWidgetItem("There are currently no files.")
+        #     note.setTextAlignment(Qt.AlignCenter)
+        #     self.pdf_widget.addItem(note)
         # TODO: will remove this after testing
-        else:
-            note = QListWidgetItem("There are currently files.")
-            note.setTextAlignment(Qt.AlignCenter)
-            self.pdf_widget.addItem(note)
+        # else:
+        #     note = QListWidgetItem("There are currently files.")
+        #     note.setTextAlignment(Qt.AlignCenter)
+        #     self.pdf_widget.addItem(note)
         # for i in range(5):
         #     item = QListWidgetItem(f"Item {i}")
         #     item.setTextAlignment(Qt.AlignCenter)
@@ -236,20 +237,22 @@ class Widget(QWidget):
         file_paths = QFileDialog.getOpenFileNames(self, "Select one or more files to open", os.path.join(os.path.expanduser("~"), "Downloads"), "*.pdf")[0]
         if len(file_paths) == 0:
             return
-        self.filenames += file_paths
-        self.pdf_widget.takeItem(0)
-        for file_path in self.filenames:
-            pdf_icon = QIcon("./pdf-icon.png")
-            filename = os.path.basename(file_path)
+        # self.filenames += file_paths
+        # self.pdf_widget.takeItem(0)
+        for file_path in file_paths:
+            if file_path not in self.filenames:
+                self.filenames.append(file_path)
+                pdf_icon = QIcon("./pdf-icon.png")
+                filename = os.path.basename(file_path)
 
-            # trim file name
-            filename_length = 36
-            if len(filename) > filename_length:
-                filename = filename[:filename_length] + "..."
+                # trim file name
+                filename_length = 36
+                if len(filename) > filename_length:
+                    filename = filename[:filename_length] + "..."
 
-            file_item = QListWidgetItem(filename)
-            file_item.setIcon(pdf_icon)
-            self.pdf_widget.addItem(file_item)
+                file_item = QListWidgetItem(filename)
+                file_item.setIcon(pdf_icon)
+                self.pdf_widget.addItem(file_item)
         print(self.filenames)
 
     def change_save_location(self):
@@ -263,17 +266,27 @@ class Widget(QWidget):
         self.location_label.setText(directory)
 
     def start_summarization_proc(self):
+        print(self.filenames)
         markdown_icon = QIcon("./markdown-icon.png")
-        raw_filenames = [os.path.splitext(os.path.basename(file_dir))[0] for file_dir in self.filenames]
-        for file in raw_filenames:
-            trim_filename_length = 20
-            filename_display = file + ".md"
-            self.summarized_files.append(os.path.join(self.save_location, file+".md"))
-            if len(filename_display) > trim_filename_length:
-                filename_display = file[:trim_filename_length] + "..."
+        # raw_filenames = [os.path.splitext(os.path.basename(file_dir))[0] for file_dir in self.filenames]
 
-            ### Write to save_location
-            with open(os.path.join(self.save_location, file+".md"), "w") as f_summary:
+        selected_files = self.pdf_widget.selectedItems()
+        for file in selected_files:
+            trim_filename_length = 20
+            filename = os.path.splitext(file.text())[0]
+            filename_display = filename + ".md"
+            print(filename_display)
+
+            file_path = os.path.join(self.save_location, filename+".md")
+            if file_path in self.summarized_files:
+                continue
+
+            self.summarized_files.append(file_path)
+
+            if len(filename_display) > trim_filename_length:
+                filename_display = filename_display[:trim_filename_length] + "..."
+
+            with open(os.path.join(self.save_location, filename + ".md"), "w") as f_summary:
                 some_text = """## Introduction:
 
 The study aimed to develop a system for translating Baybáyin script to Tagalog using a LeNet **Convolutional Neural Network** (CNN) with real-time recognition on OpenCV. The resurgence of interest in Baybáyin, due to social media and cultural reconnection, and the Philippine Congress's approval of House Bill 1022, which declares Baybáyin as the national writing system, motivated this research.
@@ -296,6 +309,38 @@ The study concluded that using CNN to automate the conversion of hand-drawn Bayb
             summary_file_item.setIcon(markdown_icon)
             self.summarized_widget.addItem(summary_file_item)
 
+        print(self.summarized_files)
+#         for file in raw_filenames:
+#             trim_filename_length = 20
+#             filename_display = file + ".md"
+#             self.summarized_files.append(os.path.join(self.save_location, file+".md"))
+#             if len(filename_display) > trim_filename_length:
+#                 filename_display = file[:trim_filename_length] + "..."
+#
+#             ### Write to save_location
+#             with open(os.path.join(self.save_location, file+".md"), "w") as f_summary:
+#                 some_text = """## Introduction:
+#
+# The study aimed to develop a system for translating Baybáyin script to Tagalog using a LeNet **Convolutional Neural Network** (CNN) with real-time recognition on OpenCV. The resurgence of interest in Baybáyin, due to social media and cultural reconnection, and the Philippine Congress's approval of House Bill 1022, which declares Baybáyin as the national writing system, motivated this research.
+#
+# ## Process:
+#
+# The researchers used a LeNet CNN architecture due to its simplicity and effectiveness for beginners in CNN. The system was designed to detect Baybáyin scripts using a webcam, classify the script into Tagalog translation, and automate the conversion of hand-drawn Baybáyin characters. The dataset consisted of **36,000** images of Baybáyin characters, which were trained, validated, and tested using the model. The system was developed using Python and various libraries such as **OpenCV, NumPy, Sklearn, Keras, Matplotlib, and TensorFlow**.
+#
+# ## Results:
+#
+# The system achieved a total accuracy of **93.91%**, with a test score of **5.17%** and a test accuracy of **98.50%** over 20 epochs used in the testing phase.
+#
+# ## Conclusion:
+#
+# The study concluded that using CNN to automate the conversion of hand-drawn Baybáyin characters is **feasible and successful**. The objectives of developing an intelligent system for script identification and classification, utilizing LeNet CNN for recognition, and capturing scripts via webcam were achieved. However, the system's performance was *limited* by the hardware specifications of the laptop and webcam used. Future recommendations include implementing the system on a mobile platform for better accessibility and comprehensiveness.
+#                 """
+#                 f_summary.write(some_text)
+#
+#             summary_file_item = QListWidgetItem(filename_display)
+#             summary_file_item.setIcon(markdown_icon)
+#             self.summarized_widget.addItem(summary_file_item)
+
     def clear_files(self):
         pass
 
@@ -315,7 +360,6 @@ The study concluded that using CNN to automate the conversion of hand-drawn Bayb
 
     def select_files_to_remove(self):
         # Allow multiple items to be selected
-        self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
 
         # TODO: change start button background color and text
         self.start_button.setText("REMOVE")
@@ -333,8 +377,10 @@ The study concluded that using CNN to automate the conversion of hand-drawn Bayb
         self.clear_button.setText("REMOVE FILES")
 
         self.start_button.clicked.connect(self.start_summarization_proc)
+        self.start_button.clicked.disconnect(self.remove_selected_files)
         self.clear_button.clicked.connect(self.select_files_to_remove)
-        self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.clear_button.clicked.disconnect(self.revert_buttons)
+        # self.pdf_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
     def navigate_to_page(self, page_index):
         # Method to switch views
