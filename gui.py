@@ -356,6 +356,7 @@ The study concluded that using CNN to automate the conversion of hand-drawn Bayb
         items = self.pdf_widget.selectedItems()
         for item in items:
             print(item)
+            self.filenames = [s for s in self.filenames if item.text() not in s]
             self.pdf_widget.takeItem(self.pdf_widget.row(item))
 
     def select_files_to_remove(self):
