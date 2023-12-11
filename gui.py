@@ -126,6 +126,7 @@ class Widget(QWidget):
 
         button_layout = QVBoxLayout()
         self.start_button = QPushButton("START")
+        self.start_button.setDisabled(True)
         self.clear_button = QPushButton("REMOVE FILES")
         self.start_button.setObjectName("start-button")
         self.start_button.clicked.connect(self.start_summarization_proc)
@@ -264,6 +265,8 @@ class Widget(QWidget):
                 file_item = QListWidgetItem(filename)
                 file_item.setIcon(pdf_icon)
                 self.pdf_widget.addItem(file_item)
+        if len(self.filenames) > 0:
+            self.start_button.setDisabled(False)
         print(self.filenames)
 
     def change_save_location(self):
@@ -374,6 +377,8 @@ class Widget(QWidget):
             print(item)
             self.filenames = [s for s in self.filenames if item.text() not in s]
             self.pdf_widget.takeItem(self.pdf_widget.row(item))
+        if len(self.filenames) < 1:
+            self.start_button.setDisabled(True)
 
     def select_files_to_remove(self):
         # Allow multiple items to be selected
