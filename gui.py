@@ -4,10 +4,19 @@ import random
 from PySide6 import QtCore, QtWidgets, QtGui
 from time import sleep
 import markdown
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, QObject, Signal
 from PySide6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QApplication, QLabel, QPushButton, QVBoxLayout, \
     QHBoxLayout, QFileDialog, QAbstractItemView, QListView, QStackedWidget, QTextBrowser
 from PySide6.QtGui import QIcon
+import dotenv
+from pathlib import Path
+from langchain.chat_models import ChatOpenAI
+from langchain.document_loaders import PyPDFLoader
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
+from langchain.chains.llm import LLMChain
+from langchain.prompts import PromptTemplate
+
+dotenv.load_dotenv()
 
 
 class Widget(QWidget):
@@ -19,6 +28,8 @@ class Widget(QWidget):
         self.setFixedHeight(self.height)
         self.setFixedWidth(self.width)
         self.setContentsMargins(0, 0, 0, 0)
+
+        self.threads = QThread()
 
         self.filenames = []
         self.summarized_files = []
@@ -267,15 +278,19 @@ class Widget(QWidget):
 
     def start_summarization_proc(self):
         print(self.filenames)
-        markdown_icon = QIcon("./markdown-icon.png")
         # raw_filenames = [os.path.splitext(os.path.basename(file_dir))[0] for file_dir in self.filenames]
 
         selected_files = self.pdf_widget.selectedItems()
         for file in selected_files:
             trim_filename_length = 20
-            filename = os.path.splitext(file.text())[0]
+            f_displayed = file.text()
+            if "..." in f_displayed:
+                f_displayed = f_displayed[:-3]
+
+            filename = os.path.splitext(os.path.basename([s for s in self.filenames if f_displayed in s][0]))[0]
             filename_display = filename + ".md"
-            print(filename_display)
+            print(f"filename_display {filename_display}")
+            print(f"filename {filename}")
 
             file_path = os.path.join(self.save_location, filename+".md")
             if file_path in self.summarized_files:
@@ -285,40 +300,30 @@ class Widget(QWidget):
 
             if len(filename_display) > trim_filename_length:
                 filename_display = filename_display[:trim_filename_length] + "..."
+                print(filename_display)
 
-            with open(os.path.join(self.save_location, filename + ".md"), "w") as f_summary:
-                some_text = """## Introduction:
+            ### Summarize file
+            f_find = ""
+            if "..." in filename:
+                f_find = filename[:-3]
+                print(f"f_find {f_find}")
+            elif ".." in filename:
+                f_find = filename[:-2]
+            else:
+                f_find = filename
+                print(f"f_find {f_find}")
+            file_to_summarize = [s for s in self.filenames if f_find in s][0]
+            print("hi")
+            self.thread = SummaryWorker(1, file_to_summarize)
+            print("after init")
+            self.thread.finished.connect(self.on_summarize_finished)
+            self.thread.finished.connect(self.thread.deleteLater)
+            print("after connect")
+            self.thread.start()
+            self.thread.wait()
+            print("after start")
 
-The study aimed to develop a system for translating Baybáyin script to Tagalog using a LeNet **Convolutional Neural Network** (CNN) with real-time recognition on OpenCV. The resurgence of interest in Baybáyin, due to social media and cultural reconnection, and the Philippine Congress's approval of House Bill 1022, which declares Baybáyin as the national writing system, motivated this research.
-
-## Process:
-
-The researchers used a LeNet CNN architecture due to its simplicity and effectiveness for beginners in CNN. The system was designed to detect Baybáyin scripts using a webcam, classify the script into Tagalog translation, and automate the conversion of hand-drawn Baybáyin characters. The dataset consisted of **36,000** images of Baybáyin characters, which were trained, validated, and tested using the model. The system was developed using Python and various libraries such as **OpenCV, NumPy, Sklearn, Keras, Matplotlib, and TensorFlow**.
-
-## Results:
-
-The system achieved a total accuracy of **93.91%**, with a test score of **5.17%** and a test accuracy of **98.50%** over 20 epochs used in the testing phase.
-
-## Conclusion:
-
-The study concluded that using CNN to automate the conversion of hand-drawn Baybáyin characters is **feasible and successful**. The objectives of developing an intelligent system for script identification and classification, utilizing LeNet CNN for recognition, and capturing scripts via webcam were achieved. However, the system's performance was *limited* by the hardware specifications of the laptop and webcam used. Future recommendations include implementing the system on a mobile platform for better accessibility and comprehensiveness.
-                """
-                f_summary.write(some_text)
-
-            summary_file_item = QListWidgetItem(filename_display)
-            summary_file_item.setIcon(markdown_icon)
-            self.summarized_widget.addItem(summary_file_item)
-
-        print(self.summarized_files)
-#         for file in raw_filenames:
-#             trim_filename_length = 20
-#             filename_display = file + ".md"
-#             self.summarized_files.append(os.path.join(self.save_location, file+".md"))
-#             if len(filename_display) > trim_filename_length:
-#                 filename_display = file[:trim_filename_length] + "..."
-#
-#             ### Write to save_location
-#             with open(os.path.join(self.save_location, file+".md"), "w") as f_summary:
+#             with open(os.path.join(self.save_location, filename + ".md"), "w") as f_summary:
 #                 some_text = """## Introduction:
 #
 # The study aimed to develop a system for translating Baybáyin script to Tagalog using a LeNet **Convolutional Neural Network** (CNN) with real-time recognition on OpenCV. The resurgence of interest in Baybáyin, due to social media and cultural reconnection, and the Philippine Congress's approval of House Bill 1022, which declares Baybáyin as the national writing system, motivated this research.
@@ -336,10 +341,21 @@ The study concluded that using CNN to automate the conversion of hand-drawn Bayb
 # The study concluded that using CNN to automate the conversion of hand-drawn Baybáyin characters is **feasible and successful**. The objectives of developing an intelligent system for script identification and classification, utilizing LeNet CNN for recognition, and capturing scripts via webcam were achieved. However, the system's performance was *limited* by the hardware specifications of the laptop and webcam used. Future recommendations include implementing the system on a mobile platform for better accessibility and comprehensiveness.
 #                 """
 #                 f_summary.write(some_text)
-#
-#             summary_file_item = QListWidgetItem(filename_display)
-#             summary_file_item.setIcon(markdown_icon)
-#             self.summarized_widget.addItem(summary_file_item)
+
+        print(self.summarized_files)
+
+    def on_summarize_finished(self, summary, file_to_summarize):
+        filename_display = os.path.splitext(os.path.basename(file_to_summarize))[0] + ".md"
+        file_save_path = os.path.join(self.save_location, filename_display)
+        with open(file_save_path, "w") as f_summary:
+            f_summary.write(summary)
+        markdown_icon = QIcon("./markdown-icon.png")
+        if len(filename_display) > 20:
+            filename_display = filename_display[:20] + "..."
+
+        summary_file_item = QListWidgetItem(filename_display)
+        summary_file_item.setIcon(markdown_icon)
+        self.summarized_widget.addItem(summary_file_item)
 
     def clear_files(self):
         pass
@@ -387,6 +403,45 @@ The study concluded that using CNN to automate the conversion of hand-drawn Bayb
         # Method to switch views
         # sleep(4)
         self.stacked_widget.setCurrentIndex(page_index)
+
+
+class SummaryWorker(QThread):
+    finished = Signal(str, str)  # Signal to indicate the API call is done
+
+    def __init__(self, data, file_to_summarize, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.data = data
+        self.file_to_summarize = file_to_summarize
+        print("inside init")
+        print(f"{self.file_to_summarize}")
+
+    def run(self):
+        print("inside run")
+        summary = self.long_running_api_call(self.file_to_summarize)
+        self.finished.emit(summary, self.file_to_summarize)
+
+    def long_running_api_call(self, file_to_summarize):
+        # # Simulate a long-running task
+        # QThread.sleep(3)  # Replace with your actual API call
+        # return f"API response for {file_to_summarize} {self.data}"
+        # Define prompt
+        prompt_template = """Write a concise summary for the introduction, process, results, and conclusion of the following (skip images), give back the results in a markdown format:
+            "{text}"
+            CONCISE SUMMARY:"""
+        # prompt_template = """Write a summary for each chapter of the following PDF. The summary for each chapter should include
+        # a detailed and at least a 150-word summary of the chapter. Focus especially on chapter 3-5, and discuss the results of the PDF.
+        # "{text}"
+        # CONCISE SUMMARY:"""
+        prompt = PromptTemplate.from_template(prompt_template)
+
+        loader = PyPDFLoader(file_to_summarize)
+        docs = loader.load()
+
+        llm = ChatOpenAI(temperature=0, model_name="gpt-4-1106-preview")
+        llm_chain = LLMChain(llm=llm, prompt=prompt)
+        stuff_chain = StuffDocumentsChain(llm_chain=llm_chain, document_variable_name="text")
+
+        return stuff_chain.run(docs)
 
 
 class MarkdownViewer(QTextBrowser):
