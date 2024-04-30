@@ -4,11 +4,12 @@ import random
 from PySide6 import QtCore, QtWidgets, QtGui
 from time import sleep
 import markdown
-from PySide6.QtCore import Qt, QThread, QObject, Signal, QMutex
+from PySide6.QtCore import Qt, QThreadPool, QRunnable, Signal, QObject
 from PySide6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QApplication, QLabel, QPushButton, QVBoxLayout, \
     QHBoxLayout, QFileDialog, QAbstractItemView, QListView, QStackedWidget, QTextBrowser
 from PySide6.QtGui import QIcon
 import dotenv
+import time
 from pathlib import Path
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import PyPDFLoader
@@ -29,7 +30,7 @@ class Widget(QWidget):
         self.setFixedWidth(self.width)
         self.setContentsMargins(0, 0, 0, 0)
 
-        self.threads = QThread()
+        self.threads = QThreadPool()
 
         self.filenames = []
         self.summarized_files = []
@@ -317,14 +318,15 @@ class Widget(QWidget):
                 print(f"f_find {f_find}")
             file_to_summarize = [s for s in self.filenames if f_find in s][0]
             print("hi")
-            thread = SummaryWorker(1, file_to_summarize)
+            worker = SummaryWorker(1, file_to_summarize)
             print("after init")
-            thread.finished.connect(self.on_summarize_finished)
-            thread.finished.connect(thread.deleteLater)
+            worker.signals.finished.connect(self.on_summarize_finished)
+            # worker.finished.connect(worker.deleteLater)
+            self.threads.start(worker)
             print("after connect")
-            thread.start()
+            # thread.start()
+
             print("after start")
-            self.process_file(file_to_summarize)
 
 #             with open(os.path.join(self.save_location, filename + ".md"), "w") as f_summary:
 #                 some_text = """## Introduction:
@@ -400,25 +402,47 @@ class Widget(QWidget):
         # sleep(4)
         self.stacked_widget.setCurrentIndex(page_index)
 
+import traceback, sys
 
-class SummaryWorker(QThread):
+class WorkerSignals(QObject):
+    '''
+    Defines the signals available from a running worker thread.
+
+    Supported signals are:
+
+    finished
+        No data
+
+    error
+        tuple (exctype, value, traceback.format_exc() )
+
+    result
+        object data returned from processing, anything
+
+    '''
+    finished = Signal(str, str)  # QtCore.Signal
+    error = Signal(tuple)
+    result = Signal(object)
+
+class SummaryWorker(QRunnable):
     finished = Signal(str, str)  # Signal to indicate the API call is done
 
     def __init__(self, data, file_to_summarize, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data = data
         self.file_to_summarize = file_to_summarize
+        self.signals = WorkerSignals()
         print("inside init")
         print(f"{self.file_to_summarize}")
 
     def run(self):
         print("inside run")
         summary = self.long_running_api_call(self.file_to_summarize)
-        self.finished.emit(summary, self.file_to_summarize)
+        self.signals.finished.emit(summary, self.file_to_summarize)
 
     def long_running_api_call(self, file_to_summarize):
         # # Simulate a long-running task
-        QThread.sleep(5)  # Replace with your actual API call
+        time.sleep(5)  # Replace with your actual API call
         return f"API response for {file_to_summarize} {self.data}"
         # Define prompt
         # prompt_template = """Write a concise summary for the introduction, process, results, and conclusion of the following (skip images), give back the results in a markdown format:
