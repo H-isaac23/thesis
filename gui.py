@@ -4,7 +4,7 @@ import random
 from PySide6 import QtCore, QtWidgets, QtGui
 from time import sleep
 import markdown
-from PySide6.QtCore import Qt, QThread, QObject, Signal
+from PySide6.QtCore import Qt, QThread, QObject, Signal, QMutex
 from PySide6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QApplication, QLabel, QPushButton, QVBoxLayout, \
     QHBoxLayout, QFileDialog, QAbstractItemView, QListView, QStackedWidget, QTextBrowser
 from PySide6.QtGui import QIcon
@@ -317,14 +317,14 @@ class Widget(QWidget):
                 print(f"f_find {f_find}")
             file_to_summarize = [s for s in self.filenames if f_find in s][0]
             print("hi")
-            self.thread = SummaryWorker(1, file_to_summarize)
+            thread = SummaryWorker(1, file_to_summarize)
             print("after init")
-            self.thread.finished.connect(self.on_summarize_finished)
-            self.thread.finished.connect(self.thread.deleteLater)
+            thread.finished.connect(self.on_summarize_finished)
+            thread.finished.connect(thread.deleteLater)
             print("after connect")
-            self.thread.start()
-            self.thread.wait()
+            thread.start()
             print("after start")
+            self.process_file(file_to_summarize)
 
 #             with open(os.path.join(self.save_location, filename + ".md"), "w") as f_summary:
 #                 some_text = """## Introduction:
@@ -359,15 +359,6 @@ class Widget(QWidget):
         summary_file_item = QListWidgetItem(filename_display)
         summary_file_item.setIcon(markdown_icon)
         self.summarized_widget.addItem(summary_file_item)
-
-    def clear_files(self):
-        pass
-
-    def summarize(self):
-        pass
-
-    def show_summarized_files(self):
-        pass
 
     def remove_selected_files(self):
         # TODO: change bg color of start button, change text of start button
@@ -427,26 +418,26 @@ class SummaryWorker(QThread):
 
     def long_running_api_call(self, file_to_summarize):
         # # Simulate a long-running task
-        # QThread.sleep(3)  # Replace with your actual API call
-        # return f"API response for {file_to_summarize} {self.data}"
+        QThread.sleep(5)  # Replace with your actual API call
+        return f"API response for {file_to_summarize} {self.data}"
         # Define prompt
-        prompt_template = """Write a concise summary for the introduction, process, results, and conclusion of the following (skip images), give back the results in a markdown format:
-            "{text}"
-            CONCISE SUMMARY:"""
-        # prompt_template = """Write a summary for each chapter of the following PDF. The summary for each chapter should include
-        # a detailed and at least a 150-word summary of the chapter. Focus especially on chapter 3-5, and discuss the results of the PDF.
-        # "{text}"
-        # CONCISE SUMMARY:"""
-        prompt = PromptTemplate.from_template(prompt_template)
-
-        loader = PyPDFLoader(file_to_summarize)
-        docs = loader.load()
-
-        llm = ChatOpenAI(temperature=0, model_name="gpt-4-1106-preview")
-        llm_chain = LLMChain(llm=llm, prompt=prompt)
-        stuff_chain = StuffDocumentsChain(llm_chain=llm_chain, document_variable_name="text")
-
-        return stuff_chain.run(docs)
+        # prompt_template = """Write a concise summary for the introduction, process, results, and conclusion of the following (skip images), give back the results in a markdown format:
+        #     "{text}"
+        #     CONCISE SUMMARY:"""
+        # # prompt_template = """Write a summary for each chapter of the following PDF. The summary for each chapter should include
+        # # a detailed and at least a 150-word summary of the chapter. Focus especially on chapter 3-5, and discuss the results of the PDF.
+        # # "{text}"
+        # # CONCISE SUMMARY:"""
+        # prompt = PromptTemplate.from_template(prompt_template)
+        #
+        # loader = PyPDFLoader(file_to_summarize)
+        # docs = loader.load()
+        #
+        # llm = ChatOpenAI(temperature=0, model_name="gpt-4-1106-preview")
+        # llm_chain = LLMChain(llm=llm, prompt=prompt)
+        # stuff_chain = StuffDocumentsChain(llm_chain=llm_chain, document_variable_name="text")
+        #
+        # return stuff_chain.run(docs)
 
 
 class MarkdownViewer(QTextBrowser):
