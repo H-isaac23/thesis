@@ -1,13 +1,13 @@
 import sys
 import os
-import random
-from PySide6 import QtCore, QtWidgets, QtGui
-from time import sleep
+import tempfile
+import sqlite3
 import markdown
-from PySide6.QtCore import Qt, QThreadPool, QRunnable, Signal, QObject
+from PySide6.QtCore import Qt, QThreadPool, QRunnable, Signal, QObject, QMetaObject, Slot, QSize
 from PySide6.QtWidgets import QWidget, QListWidget, QListWidgetItem, QApplication, QLabel, QPushButton, QVBoxLayout, \
-    QHBoxLayout, QFileDialog, QAbstractItemView, QListView, QStackedWidget, QTextBrowser
+    QHBoxLayout, QFileDialog, QAbstractItemView, QListView, QStackedWidget, QTextBrowser, QDialog
 from PySide6.QtGui import QIcon
+from PySide6.QtGui import QTextDocument, QTextOption, QFont
 import dotenv
 import time
 from pathlib import Path
@@ -16,13 +16,17 @@ from langchain.document_loaders import PyPDFLoader
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
+import re
 
 dotenv.load_dotenv()
-
 
 class Widget(QWidget):
     def __init__(self, parent=None):
         super(Widget, self).__init__(parent)
+        self.temp_dir = tempfile.gettempdir()
+        self.db_path = os.path.join(self.temp_dir, 'app_data.db')
+        self.check_privacy_policy()
+
         self.width = 1280
         self.height = 720
 
@@ -59,7 +63,6 @@ class Widget(QWidget):
         # print(self.summarized_widget.frameSize())
 
     def create_first_page(self):
-        print(self.save_location)
 
         ### Header
         header_widget = QWidget()
@@ -268,7 +271,7 @@ class Widget(QWidget):
                 self.pdf_widget.addItem(file_item)
         if len(self.filenames) > 0:
             self.start_button.setDisabled(False)
-        print(self.filenames)
+        # print(self.filenames)
 
     def change_save_location(self):
         directory = QFileDialog.getExistingDirectory(self, "Select Directory")
@@ -347,8 +350,6 @@ class Widget(QWidget):
 #                 """
 #                 f_summary.write(some_text)
 
-        print(self.summarized_files)
-
     def on_summarize_finished(self, summary, file_to_summarize):
         filename_display = os.path.splitext(os.path.basename(file_to_summarize))[0] + ".md"
         file_save_path = os.path.join(self.save_location, filename_display)
@@ -402,7 +403,117 @@ class Widget(QWidget):
         # sleep(4)
         self.stacked_widget.setCurrentIndex(page_index)
 
-import traceback, sys
+    def check_privacy_policy(self):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_preferences
+            (id INTEGER PRIMARY KEY, privacy_accepted BOOLEAN)
+        ''')
+
+        cursor.execute("SELECT privacy_accepted FROM user_preferences")
+        result = cursor.fetchone()
+        print(result)
+
+        if result is None or not result[0]:
+            self.show_privacy_policy(conn)
+        else:
+            # User has already accepted the privacy policy
+            pass
+
+        conn.close()
+
+    def show_privacy_policy(self, conn):
+        privacy_policy_text = """
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 14px;
+                line-height: 1.5;
+                color: #333;
+            }
+
+            h1 {
+                font-size: 34px;
+                font-weight: bold;
+                margin-bottom: 20px;
+            }
+
+            h2 {
+                font-size: 24px;
+                font-weight: bold;
+                margin-top: 30px;
+                margin-bottom: 10px;
+            }
+
+            p {
+                margin-bottom: 22px;
+            }
+        </style>
+
+        <h1>Privacy Policy</h1>
+
+        <p>At PSU, we understand the importance of protecting your privacy and the confidentiality of your personal information. This Privacy Policy outlines how we collect, use, and safeguard the data you provide when using our PDF summarization application.</p>
+
+        <h2>Data Collection and Usage</h2>
+        <p>Our app is designed to summarize PDF documents on your local device. We do not collect, store, or transmit any personal information. However, the contents of your PDF files are temporarily transmitted to a third-party service for the summarization process. This data is not stored or retained by the third-party service after the summarization is complete.</p>
+
+        <h2>Third-Party Services</h2>
+        <p>Our app utilizes a third-party service provided by LangChain to perform the summarization of your PDF documents. This service is subject to its own privacy policy and data practices, which you can review at https://www.langchain.com/privacy-policy.</p>
+
+        <h2>Data Security</h2>
+        <p>While your PDF contents are transmitted to the third-party service for summarization, we employ industry-standard encryption and security measures to protect the data in transit. Once the summarization is complete, no data is stored or retained by the third-party service or our application.</p>
+        
+        <h2>Changes to this Privacy Policy</h2>
+        <p>We may update this Privacy Policy from time to time to reflect changes in our practices, third-party services, or legal requirements. We encourage you to review the Privacy Policy periodically for any updates.</p>
+        
+        <h2>Contact Us</h2>
+        <p>If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at contact@test.com.</p>
+        """
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Privacy Policy")
+
+        text_browser = QTextBrowser()
+        text_browser.setHtml(privacy_policy_text)
+        text_browser.setReadOnly(True)
+        text_browser.setOpenExternalLinks(True)
+        text_browser.document().setDefaultTextOption(QTextOption(Qt.AlignJustify))
+        text_browser.setMinimumSize(QSize(1280, 720))
+
+        accept_button = QPushButton("Accept")
+        accept_button.clicked.connect(dialog.accept)
+
+        reject_button = QPushButton("Reject")
+        reject_button.clicked.connect(dialog.reject)
+
+        layout = QVBoxLayout()
+        layout.addWidget(text_browser)
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(accept_button)
+        button_layout.addWidget(reject_button)
+        layout.addLayout(button_layout)
+
+        dialog.setLayout(layout)
+
+        if dialog.exec() == QDialog.Accepted:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM user_preferences WHERE id = 1")
+            result = cursor.fetchone()
+
+            if result[0] == 0:
+                cursor.execute("INSERT INTO user_preferences (id, privacy_accepted) VALUES (1, ?)", (True,))
+            else:
+                cursor.execute("UPDATE user_preferences SET privacy_accepted = ? WHERE id = 1", (True,))
+
+            conn.commit()
+        else:
+            QMetaObject.invokeMethod(self, "quit_app", Qt.QueuedConnection)
+
+    @Slot()
+    def quit_app(self):
+        QApplication.quit()
 
 class WorkerSignals(QObject):
     '''
@@ -433,7 +544,6 @@ class SummaryWorker(QRunnable):
         self.file_to_summarize = file_to_summarize
         self.signals = WorkerSignals()
         print("inside init")
-        print(f"{self.file_to_summarize}")
 
     def run(self):
         print("inside run")
@@ -442,26 +552,26 @@ class SummaryWorker(QRunnable):
 
     def long_running_api_call(self, file_to_summarize):
         # # Simulate a long-running task
-        time.sleep(5)  # Replace with your actual API call
-        return f"API response for {file_to_summarize} {self.data}"
+        # time.sleep(1)  # Replace with your actual API call
+        # return f"API response for {file_to_summarize} {self.data}"
         # Define prompt
-        # prompt_template = """Write a concise summary for the introduction, process, results, and conclusion of the following (skip images), give back the results in a markdown format:
-        #     "{text}"
-        #     CONCISE SUMMARY:"""
-        # # prompt_template = """Write a summary for each chapter of the following PDF. The summary for each chapter should include
-        # # a detailed and at least a 150-word summary of the chapter. Focus especially on chapter 3-5, and discuss the results of the PDF.
-        # # "{text}"
-        # # CONCISE SUMMARY:"""
-        # prompt = PromptTemplate.from_template(prompt_template)
-        #
-        # loader = PyPDFLoader(file_to_summarize)
-        # docs = loader.load()
-        #
-        # llm = ChatOpenAI(temperature=0, model_name="gpt-4-1106-preview")
-        # llm_chain = LLMChain(llm=llm, prompt=prompt)
-        # stuff_chain = StuffDocumentsChain(llm_chain=llm_chain, document_variable_name="text")
-        #
-        # return stuff_chain.run(docs)
+        prompt_template = """Write a concise summary for the introduction, process, results, and conclusion of the
+        following (skip images), append the authors at the end (if they exist), give back the results in a markdown
+        format: "{text}" CONCISE SUMMARY: """
+        # prompt_template = """Write a summary for each chapter of the following PDF. The summary for each chapter should include
+        # a detailed and at least a 150-word summary of the chapter. Focus especially on chapter 3-5, and discuss the results of the PDF.
+        # "{text}"
+        # CONCISE SUMMARY:"""
+        prompt = PromptTemplate.from_template(prompt_template)
+
+        loader = PyPDFLoader(file_to_summarize)
+        docs = loader.load()
+
+        llm = ChatOpenAI(temperature=0, model_name="gpt-4-turbo-2024-04-09")
+        llm_chain = LLMChain(llm=llm, prompt=prompt)
+        stuff_chain = StuffDocumentsChain(llm_chain=llm_chain, document_variable_name="text")
+
+        return stuff_chain.run(docs)
 
 
 class MarkdownViewer(QTextBrowser):
@@ -473,7 +583,18 @@ class MarkdownViewer(QTextBrowser):
     def setMarkdown(self, markdown_text):
         html_content = markdown.markdown(markdown_text)
         # Create a style block that sets the text color and font size
-        style_block = "<style>* { color: white !important; font-size: 2em !important; }</style>"
+        style_block = """
+            <style>
+                * { color: white !important; font-size: 20px !important; } 
+                pre { color: white !important; font-size: 20px !important; }
+                h1 { color: white !important; font-size: 30px !important; }
+                h2 { color: white !important; font-size: 26px !important; }
+                h3 { color: white !important; font-size: 22px !important; } 
+                h4 { color: white !important; font-size: 22px !important; } 
+                h5 { color: white !important; font-size: 22px !important; } 
+                h6 { color: white !important; font-size: 22px !important; } 
+            </style>
+        """
         # Combine the style block with the HTML content
         styled_html = style_block + html_content
         # Set the combined HTML as the content of the QTextBrowser
