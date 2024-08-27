@@ -47,21 +47,13 @@ class Widget(QWidget):
 
         ### Pages to be displayed
         self.first_page_widget = self.create_first_page()
-        # self.summarized_page = self.create_second_page("EWWWWWWWWWWWWWW. WHAT THE FUCK")
 
         ### Add pages to stacked widgets
         self.stacked_widget.addWidget(self.first_page_widget)
-        # self.stacked_widget.addWidget(self.summarized_page)
 
         self.page_layout.addWidget(self.stacked_widget)
 
         self.setLayout(self.page_layout)
-
-        # self.navigate_to_page(1)
-
-        # self.setLayout(layout)
-        # print(self.summarized_widget.frameSize())
-
     def create_first_page(self):
 
         ### Header
